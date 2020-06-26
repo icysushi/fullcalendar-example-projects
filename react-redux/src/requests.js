@@ -10,12 +10,18 @@ let eventDb = [
   {
     id: createEventId(),
     title: 'All-day event',
-    start: todayStr
+    start: todayStr,
+    end: todayStr,
+    allDay: true,
+    groupId: 1,
   },
   {
     id: createEventId(),
     title: 'Timed event',
-    start: todayStr + 'T12:00:00'
+    start: todayStr + 'T12:00:00',
+    end: todayStr + 'T12:00:00',
+    allDay: false,
+    groupId: 2,
   }
 ]
 

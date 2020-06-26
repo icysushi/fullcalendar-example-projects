@@ -9,6 +9,10 @@ import actionCreators from './actions'
 import { getHashValues } from './utils'
 
 class DemoApp extends React.Component {
+  constructor(props){
+    super(props);
+    this.calendarRef = React.createRef();
+  }
 
   render() {
     return (
@@ -16,6 +20,7 @@ class DemoApp extends React.Component {
         {this.renderSidebar()}
         <div className='demo-app-main'>
           <FullCalendar
+            ref = {this.calendarRef}
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
             headerToolbar={{
               left: 'prev,next today',
@@ -23,7 +28,12 @@ class DemoApp extends React.Component {
               right: 'dayGridMonth,timeGridWeek,timeGridDay'
             }}
             initialView='dayGridMonth'
-            editable={true}
+            resources={[{id:'a', title:'Room A'}, {id:'b', title:'Room B'}, {id:'c', title:'Room C'}]}
+            allDaySlot={false}
+            eventOverlap={false}
+            editable={false}
+            eventOrder="groupId,startStr,-duration,allDay,title"
+            slotEventOverlap={false}
             selectable={true}
             selectMirror={true}
             dayMaxEvents={true}
@@ -32,7 +42,7 @@ class DemoApp extends React.Component {
             select={this.handleDateSelect}
             events={this.props.events}
             eventContent={renderEventContent} // custom render function
-            eventClick={this.handleEventClick}
+            //eventClick={this.handleEventClick}
             eventAdd={this.handleEventAdd}
             eventChange={this.handleEventChange} // called for drag-n-drop/resize
             eventRemove={this.handleEventRemove}
@@ -77,18 +87,39 @@ class DemoApp extends React.Component {
   // ------------------------------------------------------------------------------------------
 
   handleDateSelect = (selectInfo) => {
-    let calendarApi = selectInfo.view.calendar
-    let title = prompt('Please enter a new title for your event')
+    
+    let calendarApi = selectInfo.view.calendar;
+    let events = this.props.events;
+    if(selectInfo.view.type=='dayGridMonth'){
+      calendarApi.changeView('timeGridDay', selectInfo.startStr);
+    }else{
+      
+      let title = prompt('Please enter a new title for your event');
+      let group = prompt('輸入你要借的場地');
+      let color = (group==1)? '#ff9933': (group==2)? '#0080ff' : (group==3)? '#03f90b' : '#ffffff';
 
-    calendarApi.unselect() // clear date selection
+      calendarApi.unselect() // clear date selection
+      console.log(events);
 
-    if (title) {
-      calendarApi.addEvent({ // will render immediately. will call handleEventAdd
-        title,
-        start: selectInfo.startStr,
-        end: selectInfo.endStr,
-        allDay: selectInfo.allDay
-      }, true) // temporary=true, will get overwritten when reducer gives new events
+      if (title && group) {
+        var i;
+        for(i=0;i<events.length;i+=1){
+          console.log(events[i]);
+          if((group==events[i].groupId)&&(((selectInfo.startStr>=events[i].start)&&(selectInfo.startStr<=events[i].end))||((selectInfo.startStr<=events[i].start)&&(selectInfo.endStr>=events[i].start)))){
+            alert('該時段場地已經被借走囉');
+            return;
+          }
+        }
+        calendarApi.addEvent({ // will render immediately. will call handleEventAdd
+          title,
+          start: selectInfo.startStr,
+          end: selectInfo.endStr,
+          allDay: selectInfo.allDay,
+          overlap: false,
+          groupId: group,
+          backgroundColor: color
+        }, true) // temporary=true, will get overwritten when reducer gives new events
+      }
     }
   }
 
@@ -160,10 +191,12 @@ function mapStateToProps() {
     getHashValues
   )
 
+
   return (state) => {
     return {
       events: getEventArray(state),
-      weekendsVisible: state.weekendsVisible
+      weekendsVisible: state.weekendsVisible,
+      calendarRef: this.calendarRef
     }
   }
 }
